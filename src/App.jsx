@@ -31,6 +31,12 @@ function Apps() {
         const ticketsData = await ticketsResponse.json();
         setTickets(ticketsData);
         console.log(ticketsData)
+
+        // Log typeof for ticket.price
+        ticketsData.forEach(ticket => {
+          console.log(typeof ticket.price);
+        });
+
         // Fetch purchases
         const purchasesResponse = await fetch(`${BASE_URL}/api/purchases/`);
         if (!purchasesResponse.ok) {
@@ -66,7 +72,7 @@ function Apps() {
             />
           }
         ></Route>
-                <Route
+        <Route
           path="/checkout"
           element={
             <CheckoutPage
