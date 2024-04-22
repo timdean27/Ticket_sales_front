@@ -1,0 +1,63 @@
+/* Mobile styles */
+.container {
+  background-color: #d8f3dc;
+  padding: 20px;
+  position: relative;
+}
+
+.left-section {
+  margin-bottom: 20px;
+}
+
+.right-section {
+  margin-bottom: 20px;
+}
+
+.concert-image, .church-image {
+  max-width: 100%; /* Make the image responsive */
+  height: auto; /* Maintain aspect ratio */
+}
+
+.church-info .address {
+  font-size: 1rem;
+}
+
+.concerts-section,
+.tickets-section,
+.checkout-button,
+.note-about-premium-seats {
+  flex-basis: 60%; /* Take up full width */
+  margin: 5px; /* Add margin to separate from top sections */
+}
+/* Desktop styles */
+@media (min-width: 768px) {
+  .container {
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .left-section {
+    flex: 0 0 calc(50% - 10px); /* 50% width with 10px spacing */
+    margin-right: 10px; /* Add spacing between left and right sections */
+  }
+
+  .right-section {
+    flex: 0 0 calc(50% - 10px); /* 50% width with 10px spacing */
+    margin-left: 10px; /* Add spacing between left and right sections */
+  }
+
+  .church-info .address {
+    font-size: 1rem;
+  }
+
+  .concerts-section,
+  .tickets-section,
+  .checkout-button,
+  .note-about-premium-seats {
+    flex-basis: 70%; /* Take up full width */
+    margin: 0px; /* Add margin to separate from top sections */
+  }
+}
+

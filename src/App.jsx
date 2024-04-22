@@ -8,43 +8,37 @@ function Apps() {
   const [tickets, setTickets] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  console.log("run");
 
-  const BASE_URL = "http://127.0.0.1:8000"; // Corrected BASE_URL
+  const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
+  console.log('Base URL:', BASE_URL_DJANGO);
 
   useEffect(() => {
     async function fetchData() {
       try {
         // Fetch concerts
-        const concertsResponse = await fetch(`${BASE_URL}/api/concerts/`);
+        const concertsResponse = await fetch(`${BASE_URL_DJANGO}/api/concerts/`);
         if (!concertsResponse.ok) {
           throw new Error("Network response was not ok");
         }
         const concertsData = await concertsResponse.json();
         setConcerts(concertsData);
-        console.log(concertsData)
 
         // Fetch tickets
-        const ticketsResponse = await fetch(`${BASE_URL}/api/tickets/`);
+        const ticketsResponse = await fetch(`${BASE_URL_DJANGO}/api/tickets/`);
         if (!ticketsResponse.ok) {
           throw new Error("Network response was not ok");
         }
         const ticketsData = await ticketsResponse.json();
         setTickets(ticketsData);
-        console.log(ticketsData)
-
-        // Log typeof for ticket.price
-        ticketsData.forEach(ticket => {
-          console.log(typeof ticket.price);
-        });
 
         // Fetch purchases
-        const purchasesResponse = await fetch(`${BASE_URL}/api/purchases/`);
+        const purchasesResponse = await fetch(`${BASE_URL_DJANGO}/api/purchases/`);
         if (!purchasesResponse.ok) {
           throw new Error("Network response was not ok");
         }
         const purchasesData = await purchasesResponse.json();
         setPurchases(purchasesData);
-        console.log(purchasesData)
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -54,6 +48,35 @@ function Apps() {
 
     fetchData();
   }, []);
+
+  const resetTicketProperties = async () => {
+    try {
+      const updatedTickets = await Promise.all(
+        tickets.map((ticket) =>
+          fetch(`${BASE_URL_DJANGO}/api/tickets/${ticket.id}/`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...ticket,
+              is_sold: false,
+              price: "40.00",
+              price_type: "standard",
+            }),
+          })
+        )
+      );
+
+      if (updatedTickets.every((response) => response.ok)) {
+        window.location.reload(); // Full page reload
+      } else {
+        console.error("Error updating tickets");
+      }
+    } catch (error) {
+      console.error("Error updating tickets:", error);
+    }
+  };
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -83,6 +106,7 @@ function Apps() {
           }
         ></Route>
       </Routes>
+      <button onClick={resetTicketProperties}>Reset Ticket Properties</button>
     </Router>
   );
 }
