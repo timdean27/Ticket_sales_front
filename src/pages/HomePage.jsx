@@ -21,7 +21,7 @@ import '../styles/HomePageStyles.css';
 import CraigSchulmanImage from "../images/CraigSchulman.jpg";
 import FPCG_Church_Image from "../images/FPCG_Church_Image.jpg";
 
-function HomePage({ concerts, tickets, purchases }) {
+function HomePage({ concerts, tickets, purchases , }) {
   const [concertsData, setConcerts] = useState(concerts);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
@@ -35,7 +35,7 @@ function HomePage({ concerts, tickets, purchases }) {
   const [studentQuantity, setStudentQuantity] = useState(0);
 
   const navigate = useNavigate();
-  const BASE_URL = "http://127.0.0.1:8000";
+  const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
   useEffect(() => {
     calculateTotalPrice();
@@ -48,7 +48,7 @@ function HomePage({ concerts, tickets, purchases }) {
 
   const handleCreateConcert = async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/concerts/`, {
+      const response = await fetch(`${BASE_URL_DJANGO}/api/concerts/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +72,7 @@ function HomePage({ concerts, tickets, purchases }) {
 
   const handleDeleteConcert = async (concertId) => {
     try {
-      const response = await fetch(`${BASE_URL}/api/concerts/${concertId}/`, {
+      const response = await fetch(`${BASE_URL_DJANGO}/api/concerts/${concertId}/`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -181,34 +181,7 @@ function HomePage({ concerts, tickets, purchases }) {
     setTotalPrice(price);
   };
 
-  const handleCheckout = async () => {
-    // Make POST requests to update ticket prices and types
-    try {
-      await Promise.all(
-        selectedSeats.map(async (seat) => {
-          const response = await fetch(`${BASE_URL}/api/tickets/${seat.id}/`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              price: seat.price,
-              price_type: seat.price_type,
-            }),
-          });
-          if (!response.ok) {
-            throw new Error(`Failed to update ticket ${seat.id}`);
-          }
-        })
-      );
-      console.log("All tickets updated successfully");
-      // Redirect to checkout page
-      // Use history.push("/checkout") if using useHistory hook
-    } catch (error) {
-      console.error("Error updating tickets:", error);
-    }
 
-  };
 
   return (
 <div className="container">
@@ -358,7 +331,8 @@ function HomePage({ concerts, tickets, purchases }) {
             <TableRow>
               <TableCell>Total Charge</TableCell>
               <TableCell></TableCell>
-              <TableCell></TableCell>
+
+              <TableCell>{selectedSeats.length}</TableCell>
               <TableCell>${totalPrice.toFixed(2)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
@@ -371,8 +345,8 @@ function HomePage({ concerts, tickets, purchases }) {
   {/* Checkout button */}
   <Button variant="contained" className="checkout-button">
   <Link
-    to= "/checkout"
-    state= {{ selectedSeats: selectedSeats}}
+    to="/checkout"
+    state={{ selectedSeats: selectedSeats, selectedConcert: selectedConcert }}
     style={{
       color: "black",
       textDecoration: "none",
