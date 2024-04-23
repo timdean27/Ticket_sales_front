@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link , useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Button,
   Typography,
@@ -17,12 +17,18 @@ import {
   Checkbox,
   Box,
 } from "@mui/material";
+import DeleteIcon from '@mui/icons-material/Delete';
 import '../styles/HomePageStyles.css';
 import CraigSchulmanImage from "../images/CraigSchulman.jpg";
 import FPCG_Church_Image from "../images/FPCG_Church_Image.jpg";
 
-function HomePage({ concerts, tickets, purchases , }) {
-  const [concertsData, setConcerts] = useState(concerts);
+function HomePage({ concerts, tickets, purchases }) {
+  const [key, setKey] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const [concertsData, setConcerts] = useState([]);
+  const [ticketsData, setTickets] = useState([]);
+  const [purchasesData, setPurchases] = useState([]);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [selectedSeats, setSelectedSeats] = useState([]);
   const [totalPrice, setTotalPrice] = useState(0);
@@ -33,18 +39,57 @@ function HomePage({ concerts, tickets, purchases , }) {
   const [premiumQuantity, setPremiumQuantity] = useState(0);
   const [standardQuantity, setStandardQuantity] = useState(0);
   const [studentQuantity, setStudentQuantity] = useState(0);
-
   const navigate = useNavigate();
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
   useEffect(() => {
+    setConcerts(concerts);
+    setTickets(tickets);
+    setPurchases(purchases);
+  }, [concerts, tickets, purchases]);
+
+  useEffect(() => {
     calculateTotalPrice();
-    console.log(selectedSeats);
+    console.log(selectedSeats)
   }, [selectedSeats]);
 
   useEffect(() => {
-    // Fetching tickets can be added here if needed
-  }, [concertsData]);
+    async function fetchData() {
+      try {
+        const concertsResponse = await fetch(`${BASE_URL_DJANGO}/api/concerts/`);
+        if (!concertsResponse.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const concertsData = await concertsResponse.json();
+        setConcerts(concertsData);
+
+        const ticketsResponse = await fetch(`${BASE_URL_DJANGO}/api/tickets/`);
+        if (!ticketsResponse.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const ticketsData = await ticketsResponse.json();
+        setTickets(ticketsData);
+
+        const purchasesResponse = await fetch(`${BASE_URL_DJANGO}/api/purchases/`);
+        if (!purchasesResponse.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const purchasesData = await purchasesResponse.json();
+        setPurchases(purchasesData);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+    fetchData();
+  }, [concerts]);
+
+  const handleCheckout = () => {
+    setIsNavigating(true); // Set isNavigating to true
+    navigate("/checkout", {
+      state: { selectedSeats: selectedSeats, selectedConcert: selectedConcert }
+    });
+  };
+  
 
   const handleCreateConcert = async () => {
     try {
@@ -84,23 +129,30 @@ function HomePage({ concerts, tickets, purchases , }) {
     }
   };
 
-  const handleAddTicket = (priceType) => {
+  const handleAddTicket = (priceType, quantity = 1) => {
+    if (!selectedConcert) {
+      alert("Please select a concert first."); // Show notification if concert is not selected
+      return;
+    }
     if (selectedConcert) {
       // Find the next available ticket based on the selected price type
-      const nextAvailableTicket = tickets.find(
+      const nextAvailableTickets = ticketsData.filter(
         (ticket) =>
           ticket.concert === selectedConcert.id &&
           ticket.is_sold === false &&
           !selectedSeats.find((seat) => seat.id === ticket.id) &&
           !selectedSeats.find((seat) => seat.ticket_id === ticket.ticket_id)
       );
-  
-      if (nextAvailableTicket) {
-        // Update selectedSeats state with the new selected seat
+
+      const availableQuantity = Math.min(nextAvailableTickets.length, quantity);
+
+      if (availableQuantity > 0) {
+        const ticketsToAdd = nextAvailableTickets.slice(0, availableQuantity);
+
         setSelectedSeats((prevSeats) => [
           ...prevSeats,
-          {
-            ...nextAvailableTicket,
+          ...ticketsToAdd.map((ticket) => ({
+            ...ticket,
             price:
               priceType === "premium"
                 ? "65.00"
@@ -108,34 +160,30 @@ function HomePage({ concerts, tickets, purchases , }) {
                 ? "40.00"
                 : "25.00",
             price_type: priceType,
-          },
+          })),
         ]);
-  
+
         // Increment quantity for the selected ticket type
         if (priceType === "premium") {
-          setPremiumQuantity((prevQuantity) => prevQuantity + 1);
+          setPremiumQuantity((prevQuantity) => prevQuantity + availableQuantity);
         } else if (priceType === "standard") {
-          setStandardQuantity((prevQuantity) => prevQuantity + 1);
+          setStandardQuantity((prevQuantity) => prevQuantity + availableQuantity);
         } else if (priceType === "student") {
-          setStudentQuantity((prevQuantity) => prevQuantity + 1);
+          setStudentQuantity((prevQuantity) => prevQuantity + availableQuantity);
         }
-  
-        // Print selected seats
-        console.log("Selected Seats:", selectedSeats);
-  
-        // Calculate total price after adding a new seat
+
+        // Calculate total price after adding new seats
         calculateTotalPrice();
       } else {
-        console.error("No available ticket found that meets the conditions");
+        console.error("No available tickets found that meet the conditions");
       }
     } else {
       console.error("No concert selected");
     }
   };
-  
 
-  const handleRemoveTicket = (tix_price_type, tix_price) => {
-    // Filter selected seats for the ticket being removed
+  const handleRemoveTicket = (tix_price_type, tix_price, quantity = 1) => {
+    // Filter selected seats for the tickets being removed
     const filteredSeats = selectedSeats.filter(
       (seat) =>
         seat.price_type === tix_price_type &&
@@ -150,26 +198,62 @@ function HomePage({ concerts, tickets, purchases , }) {
       return; // Exit the function if no tickets are found
     }
 
-    // Find the ticket with the highest id among the filtered seats
-    const highestIdTicket = filteredSeats.reduce((prev, current) =>
-      prev.id > current.id ? prev : current
-    );
+    // Find the tickets to remove based on the quantity
+    const ticketsToRemove = filteredSeats.slice(0, quantity);
 
-    // Remove the ticket with the highest ID from the selected seats
+    // Remove the tickets to remove from the selected seats
     setSelectedSeats((prevSeats) =>
-      prevSeats.filter((seat) => seat.id !== highestIdTicket.id)
+      prevSeats.filter(
+        (seat) => !ticketsToRemove.some((ticket) => ticket.id === seat.id)
+      )
     );
 
     // Decrement quantity for the removed ticket type
-    if (highestIdTicket.price_type === "premium") {
-      setPremiumQuantity((prevQuantity) => prevQuantity - 1);
-    } else if (highestIdTicket.price_type === "standard") {
-      setStandardQuantity((prevQuantity) => prevQuantity - 1);
-    } else if (highestIdTicket.price_type === "student") {
-      setStudentQuantity((prevQuantity) => prevQuantity - 1);
+    if (tix_price_type === "premium") {
+      setPremiumQuantity((prevQuantity) => prevQuantity - quantity);
+    } else if (tix_price_type === "standard") {
+      setStandardQuantity((prevQuantity) => prevQuantity - quantity);
+    } else if (tix_price_type === "student") {
+      setStudentQuantity((prevQuantity) => prevQuantity - quantity);
     }
 
-    calculateTotalPrice(); // Calculate total price after removing a seat
+    calculateTotalPrice(); // Calculate total price after removing seats
+  };
+
+  const handleQuantityChange = (event, priceType) => {
+    const newQuantity = parseInt(event.target.value);
+    const diff = newQuantity - getQuantityForPriceType(priceType);
+    if (diff > 0) {
+      handleAddTicket(priceType, diff);
+    } else if (diff < 0) {
+      handleRemoveTicket(priceType, getPriceForPriceType(priceType), -diff);
+    }
+  };
+
+  const getQuantityForPriceType = (priceType) => {
+    switch (priceType) {
+      case "premium":
+        return premiumQuantity;
+      case "standard":
+        return standardQuantity;
+      case "student":
+        return studentQuantity;
+      default:
+        return 0;
+    }
+  };
+
+  const getPriceForPriceType = (priceType) => {
+    switch (priceType) {
+      case "premium":
+        return "65.00";
+      case "standard":
+        return "40.00";
+      case "student":
+        return "25.00";
+      default:
+        return "0.00";
+    }
   };
 
   const calculateTotalPrice = () => {
@@ -181,192 +265,171 @@ function HomePage({ concerts, tickets, purchases , }) {
     setTotalPrice(price);
   };
 
-
-
   return (
-<div className="container">
-<div className="left-section">
-    <Typography variant="h5">Craig Schulman on Broadway</Typography>
-    <Typography variant="subtitle1" style={{ fontSize: "1.2rem" }}>
-      Sunday, June 9, 2024 at 3:00pm
-    </Typography>
-    <img
-      src={CraigSchulmanImage}
-      alt="Craig Schulman"
-      className="concert-image" // Added class name for the image
-    />
-  </div>
-  <div className="right-section">
-    <img
-      src={FPCG_Church_Image}
-      alt="First Presbyterian Church of Greenlawn"
-      className="church-image" // Added class name for the image
-    />
-    <Typography variant="subtitle2" className="address">
-      First Presbyterian Church of Greenlawn
-    </Typography>
-    <Typography variant="subtitle2" className="address">
-      497 Pulaski Road
-    </Typography>
-    <Typography variant="subtitle2" className="address">
-      Greenlawn, New York 11722
-    </Typography>
-    <Typography variant="subtitle2" className="address">
-      (631) 261-2150
-    </Typography>
-  </div>
+    <div className="container">
+      <div className="left-section">
+        <Typography variant="h5">Craig Schulman on Broadway</Typography>
+        <Typography variant="subtitle1" style={{ fontSize: "1.2rem" }}>
+          Sunday, June 9, 2024 at 3:00pm
+        </Typography>
+        <img
+          src={CraigSchulmanImage}
+          alt="Craig Schulman"
+          className="concert-image"
+        />
+      </div>
+      <div className="right-section">
+        <img
+          src={FPCG_Church_Image}
+          alt="First Presbyterian Church of Greenlawn"
+          className="church-image"
+        />
+        <Typography variant="subtitle2" className="address">
+          First Presbyterian Church of Greenlawn
+        </Typography>
+        <Typography variant="subtitle2" className="address">
+          497 Pulaski Road
+        </Typography>
+        <Typography variant="subtitle2" className="address">
+          Greenlawn, New York 11722
+        </Typography>
+        <Typography variant="subtitle2" className="address">
+          (631) 261-2150
+        </Typography>
+      </div>
 
-  {/* Concerts section */}
-  <div className="concerts-section">
-    <Typography variant="h4">Concerts</Typography>
-    <List>
-      {concertsData.map((concert) => (
-        <ListItem key={concert.id}>
-          <Box display="flex" alignItems="center">
-            <ListItemText
-              primary={`${concert.name} - Sunday, June 9, 2024 at 3:00pm`}
-            />
-            <Checkbox
-              checked={selectedConcert && selectedConcert.id === concert.id}
-              onChange={() => setSelectedConcert(concert)}
-            />
-          </Box>
-        </ListItem>
-      ))}
-    </List>
-  </div>
+      {/* Concerts section */}
+      <div className="concerts-section">
+        <Typography variant="h4">Concerts</Typography>
+        <List>
+          {concertsData.map((concert) => (
+            <ListItem key={concert.id}>
+              <Box display="flex" alignItems="center">
+                <ListItemText
+                  primary={`${concert.name} - Sunday, June 9, 2024 at 3:00pm`}
+                />
+                <Checkbox
+                  checked={selectedConcert && selectedConcert.id === concert.id}
+                  onChange={() => setSelectedConcert(concert)}
+                />
+              </Box>
+            </ListItem>
+          ))}
+        </List>
+      </div>
 
-  {/* Tickets section */}
-  <div className="tickets-section">
-    <Typography variant="h4">Tickets</Typography>
-    <div>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => handleAddTicket("premium")}
-        className="ticket-button"
-      >
-        Premium Ticket ($65)
+   {/* Tickets section */}
+   <div className="tickets-section">
+        <Typography variant="h4">Tickets</Typography>
+        <div className="selected-seats">
+          <Typography variant="h5">Selected Seats:</Typography>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Tickets</TableCell>
+                  <TableCell>Price</TableCell>
+                  <TableCell>Quantity</TableCell>
+                  <TableCell>Total</TableCell>
+                  <TableCell>Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell>Premium*</TableCell>
+                  <TableCell>$65</TableCell>
+                  <TableCell>
+                    <TextField
+                      type="number"
+                      value={premiumQuantity}
+                      onChange={(e) => handleQuantityChange(e, "premium")}
+                      inputProps={{ min: 0 }}
+                    />
+                  </TableCell>
+                  <TableCell>${(premiumQuantity * 65).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => handleRemoveTicket("premium", "65.00")}
+                    >
+                      <DeleteIcon />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Standard</TableCell>
+                  <TableCell>$40</TableCell>
+                  <TableCell>
+                    <TextField
+                      type="number"
+                      value={standardQuantity}
+                      onChange={(e) => handleQuantityChange(e, "standard")}
+                      inputProps={{ min: 0 }}
+                    />
+                  </TableCell>
+                  <TableCell>${(standardQuantity * 40).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => handleRemoveTicket("standard", "40.00")}
+                    >
+                      <DeleteIcon />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Student</TableCell>
+                  <TableCell>$25</TableCell>
+                  <TableCell>
+                    <TextField
+                      type="number"
+                      value={studentQuantity}
+                      onChange={(e) => handleQuantityChange(e, "student")}
+                      inputProps={{ min: 0 }}
+                    />
+                  </TableCell>
+                  <TableCell>${(studentQuantity * 25).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <Button
+                      variant="contained"
+                      color="error"
+                      onClick={() => handleRemoveTicket("student", "25.00")}
+                    >
+                      <DeleteIcon />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell>Total Charge</TableCell>
+                  <TableCell></TableCell>
+                  <TableCell>{selectedSeats.length}</TableCell>
+                  <TableCell>${totalPrice.toFixed(2)}</TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </div>
+      </div>
+
+      {/* Checkout button */}
+      <Button variant="contained" className="checkout-button" onClick={handleCheckout}>
+
+          Go To Checkout
+
       </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => handleAddTicket("standard")}
-        className="ticket-button"
-      >
-        Standard Ticket ($40)
-      </Button>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => handleAddTicket("student")}
-        className="ticket-button"
-      >
-        Student Ticket ($25)
-      </Button>
+
+      {/* Note about Premium seats */}
+      <div style={{ padding: ".5vh" }}>
+        <Typography variant="body1" style={{ fontSize: "0.9rem" }}>
+          * Premium seats include seating in the front, and an after-concert
+          reception, including a Question-and-Answer Meet-and-Greet with Mr.
+          Schulman
+        </Typography>
+      </div>
     </div>
-    <div className="selected-seats">
-      <Typography variant="h5">Selected Seats:</Typography>
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Tickets</TableCell>
-              <TableCell>Price</TableCell>
-              <TableCell>Quantity</TableCell>
-
-              <TableCell>Total</TableCell>
-              <TableCell>Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>Premium*</TableCell>
-              <TableCell>$65</TableCell>
-              <TableCell>{premiumQuantity}</TableCell>
-
-              <TableCell>${(premiumQuantity * 65).toFixed(2)}</TableCell>
-              <TableCell>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => handleRemoveTicket("premium", "65.00")}
-                >
-                  Remove Ticket
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Standard</TableCell>
-              <TableCell>$40</TableCell>
-              <TableCell>{standardQuantity}</TableCell>
-
-              <TableCell>${(standardQuantity * 40).toFixed(2)}</TableCell>
-              <TableCell>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => handleRemoveTicket("standard", "40.00")}
-                >
-                  Remove Ticket
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Student</TableCell>
-              <TableCell>$25</TableCell>
-              <TableCell>{studentQuantity}</TableCell>
-
-              <TableCell>${(studentQuantity * 25).toFixed(2)}</TableCell>
-              <TableCell>
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={() => handleRemoveTicket("student", "25.00")}
-                >
-                  Remove Ticket
-                </Button>
-              </TableCell>
-            </TableRow>
-            <TableRow>
-              <TableCell>Total Charge</TableCell>
-              <TableCell></TableCell>
-
-              <TableCell>{selectedSeats.length}</TableCell>
-              <TableCell>${totalPrice.toFixed(2)}</TableCell>
-              <TableCell></TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </div>
-  </div>
-
-  {/* Checkout button */}
-  <Button variant="contained" className="checkout-button">
-  <Link
-    to="/checkout"
-    state={{ selectedSeats: selectedSeats, selectedConcert: selectedConcert }}
-    style={{
-      color: "black",
-      textDecoration: "none",
-    }}
-  >
-    Go To Checkout
-  </Link>
-</Button>
-
-
-  {/* Note about Premium seats */}
-  <div style={{ padding: ".5vh" }}>
-    <Typography variant="body1" style={{ fontSize: "0.9rem" }}>
-      * Premium seats include seating in the front, and an after-concert
-      reception, including a Question-and-Answer Meet-and-Greet with Mr.
-      Schulman
-    </Typography>
-  </div>
-</div>
-
   );
 }
 

@@ -11,9 +11,10 @@ import {
   Paper,
   Button,
 } from "@mui/material";
+import DeleteIcon from '@mui/icons-material/Delete';
 import { useLocation } from "react-router-dom";
 import PurchaseModal from "../components/PurchaseModal";
-import PayPal from "../components/PayPal";
+
 function CheckoutPage({ concerts, tickets, purchases }) {
   const { state } = useLocation();
   const [checkoutSelectedSeats, setCheckoutSelectedSeats] = useState([]);
@@ -138,7 +139,7 @@ function CheckoutPage({ concerts, tickets, purchases }) {
                   color="error"
                   onClick={() => handleRemoveTicket("premium", "65.00")}
                 >
-                  Remove Ticket
+                  <DeleteIcon />
                 </Button>
               </TableCell>
             </TableRow>
@@ -153,7 +154,7 @@ function CheckoutPage({ concerts, tickets, purchases }) {
                   color="error"
                   onClick={() => handleRemoveTicket("standard", "40.00")}
                 >
-                  Remove Ticket
+                  <DeleteIcon />
                 </Button>
               </TableCell>
             </TableRow>
@@ -168,7 +169,7 @@ function CheckoutPage({ concerts, tickets, purchases }) {
                   color="error"
                   onClick={() => handleRemoveTicket("student", "25.00")}
                 >
-                  Remove Ticket
+                  <DeleteIcon />
                 </Button>
               </TableCell>
             </TableRow>
@@ -183,7 +184,6 @@ function CheckoutPage({ concerts, tickets, purchases }) {
         </Table>
       </TableContainer>
       <PurchaseModal checkoutSelectedSeats={checkoutSelectedSeats} totalPrice={totalPrice} checkoutSelectedConcert={checkoutSelectedConcert}/>
-      <PayPal/>
     </div>
   );
 }

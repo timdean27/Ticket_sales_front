@@ -11,7 +11,6 @@ function Apps() {
   console.log("run");
 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
-  console.log('Base URL:', BASE_URL_DJANGO);
 
   useEffect(() => {
     async function fetchData() {
