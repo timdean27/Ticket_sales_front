@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { TextField, Box, Button, Snackbar } from '@mui/material';
+import { TextField, Box, Button, Snackbar, Modal } from '@mui/material';
+import CloseIcon from "@mui/icons-material/Close";
 import MuiAlert from '@mui/material/Alert';
 import axios from 'axios';
+import PayPal from './PayPal';
 
 function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedConcert }) {
   const [name, setName] = useState('');
@@ -10,6 +12,7 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
   const [dateOfPurchase, setDateOfPurchase] = useState('');
   const [purchaseSelectedSeats, setPurchaseSelectedSeats] = useState([]);
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [isPayPalModalOpen, setIsPayPalModalOpen] = useState(false);
 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
@@ -26,7 +29,6 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
         return;
       }
   
-      // Check if email is valid
       if (!validateEmail(email)) {
         setOpenSnackbar(true);
         return;
@@ -54,17 +56,16 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
   
       console.log('Purchase data:', purchaseData);
   
-      const response = await axios.post(`${BASE_URL}/api/purchases/`, purchaseData);
+      const response = await axios.post(`${BASE_URL_DJANGO}/api/purchases/`, purchaseData);
   
       console.log('Purchase submitted successfully:', response.data);
   
       try {
-        // Update tickets
         await Promise.all(
           purchaseSelectedSeats.map(async (seat) => {
             try {
-              const response = await axios.put(`${BASE_URL}/api/tickets/${seat.id}/`, {
-                ...seat, // Spread the seat object
+              const response = await axios.put(`${BASE_URL_DJANGO}/api/tickets/${seat.id}/`, {
+                ...seat,
                 is_sold: true,
                 price: seat.price,
                 price_type: seat.price_type,
@@ -72,23 +73,22 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
               console.log(`Ticket ${seat.id} updated successfully:`, response.data);
             } catch (error) {
               console.error(`Error updating ticket ${seat.id}:`, error);
-              // Handle error as needed
             }
           })
         );
+  
+        console.log('Tickets updated successfully.');
+  
+        // Open PayPal modal after POST and PUT are successfully completed
+        setIsPayPalModalOpen(true);
       } catch (error) {
         console.error('Error updating tickets:', error);
-        // Handle error as needed
       }
       
-      
-      console.log('Tickets updated successfully.');
-  
       setName('');
       setEmail('');
       setPhoneNumber('');
       setDateOfPurchase('');
-  
     } catch (error) {
       console.error('Error submitting purchase:', error);
     }
@@ -97,11 +97,14 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
   const handleCloseSnackbar = () => {
     setOpenSnackbar(false);
   };
-
+  
   const validateEmail = (email) => {
-    // Regular expression for validating email
     const regex = /\S+@\S+\.\S+/;
     return regex.test(email);
+  };
+  
+  const handleClosePayPalModal = () => {
+    setIsPayPalModalOpen(false);
   };
 
   return (
@@ -150,6 +153,52 @@ function PurchaseModal({ checkoutSelectedSeats, totalPrice , checkoutSelectedCon
       <Button variant="contained" color="primary" onClick={handleSubmit}>
         Submit
       </Button>
+      {/* PayPal Modal */}
+      <Modal
+  open={isPayPalModalOpen}
+  
+  aria-labelledby="paypal-modal-title"
+  aria-describedby="paypal-modal-description"
+>
+  <Box
+    sx={{
+      position: 'absolute',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      backgroundColor: 'white',
+      padding: '20px', // Add padding
+      width: '50vw', // Adjust width
+      height: '40vh', // Adjust height
+      border: '1px solid black', // Add border
+      borderRadius: '8px', // Add border radius for rounded edges
+    }}
+  >
+             <Button
+            sx={{
+              position: 'absolute',
+              top: '10px',
+              right: '10px',
+            }}
+            onClick={handleClosePayPalModal}
+          >
+            <CloseIcon />
+          </Button>
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center', // Center horizontally
+        justifyContent: 'center', // Center vertically
+        height: '100%', // Ensure the content takes full height
+      }}
+    >
+      <PayPal onClose={handleClosePayPalModal} />
+    </Box>
+  </Box>
+</Modal>
+
+
 
       <Snackbar open={openSnackbar} autoHideDuration={6000} onClose={handleCloseSnackbar}>
         <MuiAlert elevation={6} variant="filled" onClose={handleCloseSnackbar} severity="error">

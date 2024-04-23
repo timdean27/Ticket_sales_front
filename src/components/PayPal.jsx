@@ -1,31 +1,30 @@
 import React, { useState } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
-// Renders errors or successfull transactions on the screen.
+// Renders errors or successful transactions on the screen.
 function Message({ content }) {
   return <p>{content}</p>;
 }
 
 function PayPal() {
-
   const initialOptions = {
-    "client-id": import.meta.env.VITE_REACT_APP_PAYPAL_CLIENT_ID || "default_client_id",
-    "enable-funding": import.meta.env.VITE_REACT_APP_ENABLE_FUNDING || "paylater,venmo,card",
-    "disable-funding": import.meta.env.VITE_REACT_APP_DISABLE_FUNDING || "",
-    "data-sdk-integration-source": import.meta.env.VITE_REACT_APP_SDK_INTEGRATION_SOURCE || "integrationbuilder_sc",
+    "client-id": import.meta.env.VITE_REACT_APP_PAYPAL_CLIENT_ID,
+    "enable-funding": import.meta.env.VITE_REACT_APP_ENABLE_FUNDING,
+    "disable-funding": import.meta.env.VITE_REACT_APP_DISABLE_FUNDING,
+    "data-sdk-integration-source": import.meta.env.VITE_REACT_APP_SDK_INTEGRATION_SOURCE,
   };
-  
-  const [message, setMessage] = useState("");
+
   const BASE_URL_PAYPAL = import.meta.env.VITE_REACT_APP_BASE_URL_PAYPAL;
   
+  const [message, setMessage] = useState("");
+
   return (
-    <div className="PayPal">
-      <PayPalScriptProvider options={initialOptions}>
+    
+    <div className="PayPal_class">
+      <PayPalScriptProvider  
+          options={initialOptions}>
         <PayPalButtons
-          style={{
-            shape: "pill",
-            layout: "vertical",
-          }}
+
           createOrder={async () => {
             try {
               const response = await fetch(`${BASE_URL_PAYPAL}/api/orders`, {
