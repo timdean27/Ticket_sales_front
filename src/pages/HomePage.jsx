@@ -23,7 +23,6 @@ import CraigSchulmanImage from "../images/CraigSchulman.jpg";
 import FPCG_Church_Image from "../images/FPCG_Church_Image.jpg";
 
 function HomePage({ concerts, tickets, purchases }) {
-  const [key, setKey] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
 
   const [concertsData, setConcerts] = useState([]);
