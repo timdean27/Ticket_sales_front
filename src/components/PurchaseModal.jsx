@@ -3,9 +3,8 @@ import { TextField, Box, Button, Snackbar, Modal } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MuiAlert from "@mui/material/Alert";
 import axios from "axios";
-// PayPal
-import { PayPalScriptProvider } from "@paypal/react-paypal-js";
-import { PaymentForm } from "./PaymentForm";
+
+import PaymentForm from "./PaymentForm"
 
 function PurchaseModal({
   checkoutSelectedSeats,
@@ -21,47 +20,8 @@ function PurchaseModal({
   const [isPayPalModalOpen, setIsPayPalModalOpen] = useState(false);
   const [successfullPurchaseData, setSuccessfullPurchaseData] = useState("");
 
-  // PAYPAL
-  const [clientToken, setClientToken] = useState(null);
-  const [initialOptions, setInitialOptions] = useState({
-    "client-id": "AZTbs54y_im2S2jPx3TmJvuEmcR0U5QA8X9UZnUFr1IB0KmVLjvVRDm9nlDHqB5cWLXWzqyqOho3y1fi",
-    "enable-funding": "paylater,venmo",
-    currency: "USD",
-    "data-sdk-integration-source": "integrationbuilder_ac",
-    dataClientToken: null,
-    components: "hosted-fields,buttons",
-  });
-  // PAYPAL
-  useEffect(() => {
-    console.log("initialOptions", initialOptions);
-  }, [initialOptions]);
 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
-  // PAYPAL
-  const BASE_URL_PAYPAL = import.meta.env.VITE_REACT_APP_BASE_URL_PAYPAL;
-  // PAYPAL
-  useEffect(() => {
-    (async () => {
-      try {
-        const response = await fetch(`${BASE_URL_PAYPAL}/api/token`, {
-          method: "POST",
-        });
-        const { client_token } = await response.json();
-        setClientToken(client_token);
-        console.log("Client Token:", client_token); // Log the client token
-      } catch (error) {
-        console.error("Failed to fetch access token:", error);
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
-    // Update initialOptions whenever clientToken changes
-    setInitialOptions((prevOptions) => ({
-      ...prevOptions,
-      dataClientToken: clientToken,
-    }));
-  }, [clientToken]);
 
   useEffect(() => {
     setPurchaseSelectedSeats(checkoutSelectedSeats);
@@ -260,18 +220,7 @@ function PurchaseModal({
               height: "100%", // Ensure the content takes full height
             }}
           >
-            <>
-              {clientToken && initialOptions["dataClientToken"] ? (
-                <PayPalScriptProvider options={initialOptions}>
-                  <PaymentForm
-                    onClose={handleClosePayPalModal}
-                    successfullPurchaseData={successfullPurchaseData}
-                  />
-                </PayPalScriptProvider>
-              ) : (
-                <h4>WAITING ON CLIENT TOKEN</h4>
-              )}
-            </>
+            <PaymentForm successfullPurchaseData={successfullPurchaseData}/>
           </Box>
         </Box>
       </Modal>

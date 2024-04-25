@@ -1,211 +1,125 @@
-import { useState, useRef } from "react";
-import styles from "../styles//PaymentForm.module.css";
+import React, { useState, useEffect, useRef } from "react";
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
-import {
-  PayPalHostedFieldsProvider,
-  PayPalHostedField,
-  PayPalButtons,
-  usePayPalHostedFields,
-} from "@paypal/react-paypal-js";
-
-
-const BASE_URL_PAYPAL = import.meta.env.VITE_REACT_APP_BASE_URL_PAYPAL;
-
-async function createOrderCallback() {
-  try {
-    const response = await fetch(`${BASE_URL_PAYPAL}/api/orders`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // use the "body" param to optionally pass additional order information
-      // like product ids and quantities
-      body: JSON.stringify({
-        cart: [
-          {
-            id: "YOUR_PRODUCT_ID",
-            quantity: "YOUR_PRODUCT_QUANTITY",
-          },
-        ],
-      }),
-    });
-
-    const orderData = await response.json();
-
-    if (orderData.id) {
-      return orderData.id;
-    } else {
-      const errorDetail = orderData?.details?.[0];
-      const errorMessage = errorDetail
-        ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
-        : JSON.stringify(orderData);
-
-      throw new Error(errorMessage);
-    }
-  } catch (error) {
-    console.error(error);
-    return `Could not initiate PayPal Checkout...${error}`;
-  }
-}
-
-async function onApproveCallback(data, actions) {
-  try {
-    const response = await fetch(`${BASE_URL_PAYPAL}/api/orders/${data.orderID}/capture`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-
-    const orderData = await response.json();
-    // Three cases to handle:
-    //   (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-    //   (2) Other non-recoverable errors -> Show a failure message
-    //   (3) Successful transaction -> Show confirmation or thank you message
-
-    const transaction =
-      orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
-      orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
-    const errorDetail = orderData?.details?.[0];
-
-    // this actions.restart() behavior only applies to the Buttons component
-    if (errorDetail?.issue === "INSTRUMENT_DECLINED" && !data.card && actions) {
-      // (1) Recoverable INSTRUMENT_DECLINED -> call actions.restart()
-      // recoverable state, per https://developer.paypal.com/docs/checkout/standard/customize/handle-funding-failures/
-      return actions.restart();
-    } else if (
-      errorDetail ||
-      !transaction ||
-      transaction.status === "DECLINED"
-    ) {
-      // (2) Other non-recoverable errors -> Show a failure message
-      let errorMessage;
-      if (transaction) {
-        errorMessage = `Transaction ${transaction.status}: ${transaction.id}`;
-      } else if (errorDetail) {
-        errorMessage = `${errorDetail.description} (${orderData.debug_id})`;
-      } else {
-        errorMessage = JSON.stringify(orderData);
-      }
-
-      throw new Error(errorMessage);
-    } else {
-      // (3) Successful transaction -> Show confirmation or thank you message
-      // Or go to another URL:  actions.redirect('thank_you.html');
-      console.log(
-        "Capture result",
-        orderData,
-        JSON.stringify(orderData, null, 2),
-      );
-      return `Transaction ${transaction.status}: ${transaction.id}. See console for all available details`;
-    }
-  } catch (error) {
-    return `Sorry, your transaction could not be processed...${error}`;
-  }
-}
-
-const SubmitPayment = ({ onHandleMessage }) => {
-  // Here declare the variable containing the hostedField instance
-  const { cardFields } = usePayPalHostedFields();
-  const cardHolderName = useRef(null);
-
-  const submitHandler = () => {
-    if (typeof cardFields.submit !== "function") return; // validate that \`submit()\` exists before using it
-    //if (errorMsg) showErrorMsg(false);
-    cardFields
-      .submit({
-        // The full name as shown in the card and billing addresss
-        // These fields are optional for Sandbox but mandatory for production integration
-        cardholderName: cardHolderName?.current?.value,
-      })
-      .then(async (data) => onHandleMessage(await onApproveCallback(data)))
-      .catch((orderData) => {
-        onHandleMessage(
-          `Sorry, your transaction could not be processed...${JSON.stringify(
-            orderData,
-          )}`,
-        );
-      });
-  };
-
-  return (
-    <button onClick={submitHandler} className="btn btn-primary">
-      Pay
-    </button>
-  );
-};
-
-const Message = ({ content }) => {
+function Message({ content }) {
   return <p>{content}</p>;
-};
+}
 
-export const PaymentForm = () => {
+const PaymentForm = ({ successfullPurchaseData }) => {
+  const [initialOptions, setInitialOptions] = useState({
+    "client-id": import.meta.env.VITE_REACT_APP_PAYPAL_CLIENT_ID,
+    "enable-funding": "venmo,card",
+    "disable-funding": "paylater",
+    "data-sdk-integration-source": "integrationbuilder_sc",
+  });
+
+  useEffect(() => {
+    console.log("initialOptions", initialOptions);
+  }, [initialOptions]);
+
   const [message, setMessage] = useState("");
+  const [payPalPurchaseData, setPayPalPurchaseData] = useState(null); // State to store successful purchase data
+
+  const BASE_URL_PAYPAL = import.meta.env.VITE_REACT_APP_BASE_URL_PAYPAL;
+
+  useEffect(() => {
+    if (successfullPurchaseData) {
+      // If there is successful purchase data, log it and save it in state
+      console.log("Successfull Purchase Data:", successfullPurchaseData);
+      setPayPalPurchaseData(successfullPurchaseData);
+    }
+  }, [successfullPurchaseData]);
+
   return (
-    <div className={styles.form}>
-      <PayPalButtons
-        style={{
-          shape: "rect",
-          //color:'blue' change the default color of the buttons
-          layout: "vertical", //default value. Can be changed to horizontal
-        }}
-        styles={{ marginTop: "4px", marginBottom: "4px" }}
-        createOrder={createOrderCallback}
-        onApprove={async (data) => setMessage(await onApproveCallback(data))}
-      />
+    <div className="App">
+      <PayPalScriptProvider options={initialOptions}>
+        <PayPalButtons
+          style={{
+            shape: "rect",
+            layout: "vertical",
+          }}
+          createOrder={async () => {
+            try {
+              const response = await fetch(`${BASE_URL_PAYPAL}/api/orders`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  cart: [
+                    {
+                      id: `${payPalPurchaseData.id}`,
+                      quantity: `${payPalPurchaseData.tickets.length}`,
+                    },
+                  ],
+                }),
+              });
 
-      <PayPalHostedFieldsProvider createOrder={createOrderCallback}>
-        <div style={{ marginTop: "4px", marginBottom: "4px" }}>
-          <PayPalHostedField
-            id="card-number"
-            hostedFieldType="number"
-            options={{
-              selector: "#card-number",
-              placeholder: "Card Number",
-            }}
-            className={styles.input}
-          />
-          <div className={styles.container}>
-            <PayPalHostedField
-              id="expiration-date"
-              hostedFieldType="expirationDate"
-              options={{
-                selector: "#expiration-date",
-                placeholder: "Expiration Date",
-              }}
-              className={styles.input}
-            />
-            <PayPalHostedField
-              id="cvv"
-              hostedFieldType="cvv"
-              options={{
-                selector: "#cvv",
-                placeholder: "CVV",
-              }}
-              className={styles.input}
-            />
-          </div>
-          <div className={styles.container}>
-            <input
-              id="card-holder"
-              type="text"
-              placeholder="Name on Card"
-              className={styles.input}
-            />
+              const orderData = await response.json();
 
-            <input
-              id="card-billing-address-country"
-              type="text"
-              placeholder="Country Code"
-              className={styles.input}
-            />
-          </div>
-          <SubmitPayment onHandleMessage={setMessage} />
-        </div>
-      </PayPalHostedFieldsProvider>
+              if (orderData.id) {
+                return orderData.id;
+              } else {
+                const errorDetail = orderData?.details?.[0];
+                const errorMessage = errorDetail
+                  ? `${errorDetail.issue} ${errorDetail.description} (${orderData.debug_id})`
+                  : JSON.stringify(orderData);
+
+                throw new Error(errorMessage);
+              }
+            } catch (error) {
+              console.error(error);
+              setMessage(`Could not initiate PayPal Checkout...${error}`);
+            }
+          }}
+          onApprove={async (data, actions) => {
+            try {
+              const response = await fetch(
+                `${BASE_URL_PAYPAL}/api/orders/${data.orderID}/capture`,
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                }
+              );
+
+              const orderData = await response.json();
+
+              const errorDetail = orderData?.details?.[0];
+
+              if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
+                return actions.restart();
+              } else if (errorDetail) {
+                throw new Error(
+                  `${errorDetail.description} (${orderData.debug_id})`
+                );
+              } else {
+                const transaction =
+                  orderData.purchase_units[0].payments.captures[0];
+                setMessage(
+                  `Transaction ${transaction.status}: ${transaction.id}. See console for all available details`
+                );
+                console.log(
+                  "Capture result",
+                  orderData,
+                  JSON.stringify(orderData, null, 2)
+                );
+                // Set the successful purchase data in state
+                setPurchaseData(orderData);
+              }
+            } catch (error) {
+              console.error(error);
+              setMessage(
+                `Sorry, your transaction could not be processed...${error}`
+              );
+            }
+          }}
+        />
+      </PayPalScriptProvider>
       <Message content={message} />
     </div>
   );
 };
 
-export default PaymentForm
+export default PaymentForm;
