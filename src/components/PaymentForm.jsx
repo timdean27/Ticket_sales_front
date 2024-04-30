@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 
 function Message({ content }) {
@@ -33,27 +33,41 @@ const PaymentForm = ({ successfullPurchaseData }) => {
   return (
     <div className="App">
       <PayPalScriptProvider options={initialOptions}>
-        <PayPalButtons
-          style={{
-            shape: "rect",
-            layout: "vertical",
-          }}
-          createOrder={async () => {
-            try {
-              const response = await fetch(`${BASE_URL_PAYPAL}/api/orders`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  cart: [
-                    {
-                      id: `${payPalPurchaseData.id}`,
-                      quantity: `${payPalPurchaseData.tickets.length}`,
-                    },
-                  ],
-                }),
-              });
+      <PayPalButtons
+  style={{
+    shape: "rect",
+    layout: "vertical",
+  }}
+  createOrder={async () => {
+    try {
+      // Check if payPalPurchaseData is available
+      if (!payPalPurchaseData) {
+        throw new Error("PayPal purchase data is not available.");
+      }
+
+      const response = await fetch(`${BASE_URL_PAYPAL}/api/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          cart: [
+            {
+              id: `${payPalPurchaseData.id}`,
+              concert:`${payPalPurchaseData.concert}`,
+              name:`${payPalPurchaseData.name}`,
+              email:`${payPalPurchaseData.email}`,
+              phone_number:`${payPalPurchaseData.phone_number}`,
+              date_of_purchase:`${payPalPurchaseData.date_of_purchase}`,
+              tickets:JSON.stringify(payPalPurchaseData.tickets),
+              quantity:`${payPalPurchaseData.tickets.length}`,
+              total_price:`${payPalPurchaseData.total_price}`,
+              purchase_id:`${payPalPurchaseData.purchase_id}`
+            },
+          ],
+        }),
+      });
+
 
               const orderData = await response.json();
 

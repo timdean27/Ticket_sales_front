@@ -1,0 +1,35 @@
+.purchase-modal-container {
+    background-color: #ffffff;
+    padding: 16px;
+    border-radius: 8px;
+    margin-top: 32px;
+  }
+  
+  .purchase-modal-container input {
+    margin-bottom: 16px;
+  }
+  
+  .purchase-modal-container .close-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    cursor: pointer;
+    color: red;
+  }
+  
+  .purchase-modal-container .modal-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+  
+  /* Media query for mobile phones */
+  @media (max-width: 600px) {
+    .purchase-modal-container {
+      width: 90vw;
+      max-width: 90%;
+    }
+  }
+  

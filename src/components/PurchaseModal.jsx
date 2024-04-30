@@ -3,6 +3,7 @@ import { TextField, Box, Button, Snackbar, Modal } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import MuiAlert from "@mui/material/Alert";
 import axios from "axios";
+import "../styles/PurchaseModalStyles.css";
 
 import PaymentForm from "./PaymentForm"
 
@@ -137,15 +138,7 @@ function PurchaseModal({
   }
 
   return (
-    <Box
-      sx={{
-        width: 400,
-        bgcolor: "background.paper",
-        p: 4,
-        borderRadius: 2,
-        mt: 4,
-      }}
-    >
+    <Box className="purchase-modal-container">
       <TextField
         label="Name"
         variant="outlined"
@@ -188,40 +181,11 @@ function PurchaseModal({
         aria-labelledby="paypal-modal-title"
         aria-describedby="paypal-modal-description"
       >
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            backgroundColor: "lightgray",
-            width: "90vw", // Adjust width for mobile and small screens
-            maxWidth: "400px", // Set maximum width to prevent it from stretching too much on larger screens
-            height: "70vh", // Adjust height
-            border: "1px solid black", // Add border
-            borderRadius: "8px", // Add border radius for rounded edges
-          }}
-        >
-          <Button
-            sx={{
-              position: "absolute",
-              alignItems: "center", 
-            }}
-            onClick={handleClosePayPalModal}
-          >
+        <Box className="modal-content">
+          <Button className="close-button" onClick={handleClosePayPalModal}>
             <CloseIcon />
           </Button>
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center", // Center horizontally
-              justifyContent: "center", // Center vertically
-              height: "100%", // Ensure the content takes full height
-            }}
-          >
-            <PaymentForm successfullPurchaseData={successfullPurchaseData}/>
-          </Box>
+          <PaymentForm successfullPurchaseData={successfullPurchaseData} />
         </Box>
       </Modal>
 
