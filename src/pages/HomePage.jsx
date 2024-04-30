@@ -23,7 +23,6 @@ import CraigSchulmanImage from "../images/CraigSchulman.jpg";
 import FPCG_Church_Image from "../images/FPCG_Church_Image.jpg";
 
 function HomePage({ concerts, tickets, purchases }) {
-  const [key, setKey] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
 
   const [concertsData, setConcerts] = useState([]);
@@ -297,7 +296,41 @@ function HomePage({ concerts, tickets, purchases }) {
           (631) 261-2150
         </Typography>
       </div>
+      {/* Button to create a new concert */}
+      <div className="create-concert-section">
+        {/* Inputs for creating a new concert */}
+        <Typography variant="h4">Create New Concert</Typography>
+        <TextField
+          label="Concert Name"
+          value={newConcertName}
+          onChange={(e) => setNewConcertName(e.target.value)}
+        />
+        <TextField
+          label="Concert Date"
+          type="date"
+          value={newConcertDate}
+          onChange={(e) => setNewConcertDate(e.target.value)}
+        />
+        <Button variant="contained" onClick={handleCreateConcert}>Create Concert</Button>
+      </div>
 
+      {/* Button to delete a concert */}
+      <div className="delete-concert-section">
+        <Typography variant="h4">Delete Concert</Typography>
+        <List>
+          {concertsData.map((concert) => (
+            <ListItem key={concert.id}>
+              <ListItemText
+                primary={`${concert.name} - ${concert.date}`}
+              />
+              <Button variant="contained" color="error" onClick={() => handleDeleteConcert(concert.id)}>
+                Delete
+              </Button>
+            </ListItem>
+          ))}
+        </List>
+      </div>
+      
       {/* Concerts section */}
       <div className="concerts-section">
         <Typography variant="h4">Concerts</Typography>

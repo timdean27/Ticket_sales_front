@@ -8,10 +8,18 @@ function Apps() {
   const [tickets, setTickets] = useState([]);
   const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  console.log("run");
 
+  
+ 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
+  console.log("run");
+  useEffect(() => {
+    console.log("Concerts from apps page fetch",concerts)
+    console.log("Tickets from apps page fetch",tickets)
+    console.log("Purchases from apps page fetch",purchases)
+  }, [concerts,tickets,purchases]);
+  
   useEffect(() => {
     async function fetchData() {
       try {
