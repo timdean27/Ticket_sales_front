@@ -296,9 +296,10 @@ function HomePage({ concerts, tickets, purchases }) {
           (631) 261-2150
         </Typography>
       </div>
-      {/* Button to create a new concert */}
+
+      {/* Button to create a new concert
       <div className="create-concert-section">
-        {/* Inputs for creating a new concert */}
+        Inputs for creating a new concert
         <Typography variant="h4">Create New Concert</Typography>
         <TextField
           label="Concert Name"
@@ -314,7 +315,7 @@ function HomePage({ concerts, tickets, purchases }) {
         <Button variant="contained" onClick={handleCreateConcert}>Create Concert</Button>
       </div>
 
-      {/* Button to delete a concert */}
+      Button to delete a concert
       <div className="delete-concert-section">
         <Typography variant="h4">Delete Concert</Typography>
         <List>
@@ -329,7 +330,7 @@ function HomePage({ concerts, tickets, purchases }) {
             </ListItem>
           ))}
         </List>
-      </div>
+      </div> */}
       
       {/* Concerts section */}
       <div className="concerts-section">
