@@ -20,7 +20,8 @@ function PurchaseModal({
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [isPayPalModalOpen, setIsPayPalModalOpen] = useState(false);
   const [successfullPurchaseData, setSuccessfullPurchaseData] = useState("");
-
+  const [nameEmptyAlert, setNameEmptyAlert] = useState(false);
+  const [phoneEmptyAlert, setPhoneEmptyAlert] = useState(false);
 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
@@ -38,6 +39,14 @@ function PurchaseModal({
 
       if (!purchaseSelectedSeats || purchaseSelectedSeats.length === 0) {
         console.error("No selected seats to purchase.");
+        return;
+      }
+      if (!name.trim()) {
+        setNameEmptyAlert(true);
+        return;
+      }
+      if (!phoneNumber.trim()) {
+        setPhoneEmptyAlert(true);
         return;
       }
 
@@ -137,6 +146,11 @@ function PurchaseModal({
     return `${year}-${month}-${day}`;
   }
 
+
+  const handleCloseEmptyAlerts = () => {
+    setNameEmptyAlert(false);
+    setPhoneEmptyAlert(false);
+  };
   return (
     <Box className="purchase-modal-container">
       <TextField
@@ -147,6 +161,15 @@ function PurchaseModal({
         onChange={(e) => setName(e.target.value)}
         sx={{ mb: 2 }}
       />
+      {nameEmptyAlert && (
+        <MuiAlert
+          severity="error"
+          onClose={handleCloseEmptyAlerts}
+          sx={{ mb: 2 }}
+        >
+          Name is required.
+        </MuiAlert>
+      )}
       <TextField
         label="Email"
         variant="outlined"
@@ -155,7 +178,8 @@ function PurchaseModal({
         onChange={(e) => setEmail(e.target.value)}
         sx={{ mb: 2 }}
       />
-      <TextField
+ {/* Phone Number */}
+ <TextField
         label="Phone Number"
         variant="outlined"
         fullWidth
@@ -163,6 +187,15 @@ function PurchaseModal({
         onChange={(e) => setPhoneNumber(e.target.value)}
         sx={{ mb: 2 }}
       />
+      {phoneEmptyAlert && (
+        <MuiAlert
+          severity="error"
+          onClose={handleCloseEmptyAlerts}
+          sx={{ mb: 2 }}
+        >
+          Phone Number is required.
+        </MuiAlert>
+      )}
       <TextField
         label="Date of Purchase"
         variant="outlined"

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import CheckoutPage from "./pages/CheckoutPage";
+import { Button } from "@mui/material";
 
 function Apps() {
   const [concerts, setConcerts] = useState([]);
@@ -9,22 +10,22 @@ function Apps() {
   const [purchases, setPurchases] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  
- 
   const BASE_URL_DJANGO = import.meta.env.VITE_REACT_APP_BASE_URL_DJANGO;
 
   console.log("run");
   useEffect(() => {
-    console.log("Concerts from apps page fetch",concerts)
-    console.log("Tickets from apps page fetch",tickets)
-    console.log("Purchases from apps page fetch",purchases)
-  }, [concerts,tickets,purchases]);
-  
+    console.log("Concerts from apps page fetch", concerts);
+    console.log("Tickets from apps page fetch", tickets);
+    console.log("Purchases from apps page fetch", purchases);
+  }, [concerts, tickets, purchases]);
+
   useEffect(() => {
     async function fetchData() {
       try {
         // Fetch concerts
-        const concertsResponse = await fetch(`${BASE_URL_DJANGO}/api/concerts/`);
+        const concertsResponse = await fetch(
+          `${BASE_URL_DJANGO}/api/concerts/`
+        );
         if (!concertsResponse.ok) {
           throw new Error("Network response was not ok");
         }
@@ -40,7 +41,9 @@ function Apps() {
         setTickets(ticketsData);
 
         // Fetch purchases
-        const purchasesResponse = await fetch(`${BASE_URL_DJANGO}/api/purchases/`);
+        const purchasesResponse = await fetch(
+          `${BASE_URL_DJANGO}/api/purchases/`
+        );
         if (!purchasesResponse.ok) {
           throw new Error("Network response was not ok");
         }
@@ -113,7 +116,10 @@ function Apps() {
           }
         ></Route>
       </Routes>
-      <button onClick={resetTicketProperties}>Reset Ticket Properties</button>
+      <p>***This button is for development purposes only will remove on deployment***</p>
+      <Button variant="contained" color="error" onClick={resetTicketProperties}>
+        Reset Ticket Properties
+      </Button>
     </Router>
   );
 }
